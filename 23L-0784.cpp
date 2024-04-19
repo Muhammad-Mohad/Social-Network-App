@@ -436,6 +436,10 @@ void Controller::LoadData()
     cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Liked Pages\n\n";
 
     allUsers[currentUser]->ViewLikedPages();
+
+    inputFile1.close();
+    inputFile2.close();
+    inputFile3.close();
 }
 
 
