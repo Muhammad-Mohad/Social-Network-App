@@ -2,7 +2,39 @@
 #include <fstream>
 using namespace std;
 
-class Page
+class Object;
+class Page;
+class User;
+class Post;
+class Controller;
+class Helper;
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+class Object
+{
+    private:
+        char* id;
+
+    protected:
+        Post** timeline;
+
+    public:
+        Object();
+        ~Object();
+        void AddToTimeline(Post*);
+        virtual const char* GetID();
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+class Page : public Object
 {
     private:
         char* id;
@@ -20,7 +52,7 @@ class Page
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-class User
+class User : public Object
 {
     private:
         char* id;
@@ -62,13 +94,38 @@ class Helper
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+class Post
+{
+    private:
+        char* id;
+        char* content;
+        int day;
+        int month;
+        int year;
+        Object* sharedBy;
+        Object** likedBy;
+
+    public:
+        Post();
+        ~Post();
+        void ReadDataFromFile(ifstream&);
+        void SetSharedBy(Object*);
+};
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 class Controller
 {
     private:
         User** allUsers;
         Page** allPages;
+        Post** allPosts;
         int totalUsers;
         int totalPages;
+        int totalPosts;
 
     public:
         Controller();
@@ -78,12 +135,50 @@ class Controller
         void LoadAllUsers(ifstream&);
         void LoadAllPages(ifstream&);
         void LinkUsersAndPages(ifstream&);
+        void LoadAllPosts(ifstream&);
         void LoadData();
 };
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Object::Object()
+{
+    id = nullptr;
+    timeline = new Post*[10];
+    for(int i = 0; i < 10; i++)
+        timeline[i] = nullptr;
+}
+
+Object::~Object()
+{
+    delete[] id;
+    delete[] timeline;
+}
+
+
+void Object::AddToTimeline(Post* post)
+{
+    int index = 0;
+
+    while(index < 10 && timeline[index] != nullptr)
+        index++;
+
+    if(index < 10)
+        timeline[index] = post;
+    else    
+        cout << "\nTimeline is full. Cannot add more posts.\n";
+}
+
+
+const char* Object::GetID()
+{
+    return id;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 bool Helper::SubStringExists(const char* str, const char* subStr)
@@ -183,6 +278,57 @@ const char* Page::GetTitle()
     return title;
 }
 
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Post::Post()
+{
+    id = nullptr;
+    content = nullptr;
+    sharedBy = nullptr;
+    likedBy = nullptr;
+    day = 0;
+    month = 0;
+    year = 0;
+}
+
+Post::~Post()
+{
+    delete[] id;
+    delete[] content;
+
+    if(likedBy)
+    {
+        for(int i = 0; i < 10; i++)
+            delete[] likedBy[i];
+    }
+    delete[] likedBy;
+}
+
+void Post::ReadDataFromFile(ifstream& inputFile)
+{
+    const int idSize = 7;
+    char temp1[idSize];
+
+    inputFile >> temp1;
+    id = Helper::GetStringFromBuffer(temp1);
+
+    inputFile >> day >> month >> year;
+
+    const int contentSize = 80;
+    char temp2[contentSize];
+    
+    inputFile.ignore(99, '\n');
+    
+    inputFile.getline(temp2, contentSize - 1);
+    content = Helper::GetStringFromBuffer(temp2);
+}
+
+void Post::SetSharedBy(Object* obj)
+{
+    sharedBy = obj;
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -297,8 +443,10 @@ Controller::Controller()
 {
     totalUsers = 0;
     totalPages = 0;
+    totalPosts = 0;
     allUsers = nullptr;
     allPages = nullptr;
+    allPosts = nullptr;
 }
 
 Controller::~Controller()
@@ -318,6 +466,14 @@ Controller::~Controller()
     }
 
     delete[] allPages;
+
+    if(allPosts != nullptr)
+    {
+        for(int i = 0; i < totalPosts; i++)
+            delete allPosts[i];
+    }
+
+    delete[] allPosts;
 }
 
 void Controller::LoadAllUsers(ifstream& inputFile)
@@ -343,6 +499,33 @@ void Controller::LoadAllPages(ifstream& inputFile)
     {
         allPages[i] = new Page;
         allPages[i]->ReadDataFromFile(inputFile);
+    }
+}
+
+
+void Controller::LoadAllPosts(ifstream& inputFile)
+{
+    inputFile >> totalPosts;
+
+    allPosts = new Post*[totalPosts];
+
+    for(int i = 0; i < totalPosts; i++)
+    {
+        allPosts[i] = new Post;
+        allPosts[i]->ReadDataFromFile(inputFile);
+
+        const char idSize = 4;
+        char temp[idSize];
+
+        inputFile >> temp;
+
+        Object* ptr = SearchUserByID(temp);
+
+        if(!ptr)
+            ptr = SearchPageByID(temp);
+
+        allPosts[i]->SetSharedBy(ptr);
+        ptr->AddToTimeline(allPosts[i]);        
     }
 }
 
@@ -388,6 +571,8 @@ void Controller::LinkUsersAndPages(ifstream& inputFile)
     delete[] temp;
 }
 
+
+
 User* Controller::SearchUserByID(const char* id)
 {
     for(int i = 0; i < totalUsers; i++)
@@ -415,31 +600,56 @@ void Controller::LoadData()
     ifstream inputFile1("SocialNetworkUsers.txt");
     ifstream inputFile2("SocialNetworkPages.txt");
     ifstream inputFile3("UsersFriendsAndLikedPages.txt");
+    ifstream inputFile4("SocialNetworkPosts.txt");
 
     LoadAllUsers(inputFile1);
     LoadAllPages(inputFile2);
     LinkUsersAndPages(inputFile3);
+    LoadAllPosts(inputFile4);
 
-    int currentUser = 6;
+    // int currentUser = 6;
 
-    cout << "\nCommand:\tSet Current User \"" << allUsers[currentUser]->GetID() << "\"\n";
-    cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " succesfully set as Current User\n\n";
-    cout << "Command:\tView Friend List\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Friend List\n\n";
+    // cout << "\nCommand:\tSet Current User \"" << allUsers[currentUser]->GetID() << "\"\n";
+    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " succesfully set as Current User\n\n";
+    // cout << "Command:\tView Friend List\n\n";
+    // cout << "--------------------------------------------------------------------------\n\n";
+    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Friend List\n\n";
 
-    allUsers[currentUser]->ViewFriendsList();    
+    // allUsers[currentUser]->ViewFriendsList();    
 
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tView Liked Pages\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Liked Pages\n\n";
+    // cout << "\n--------------------------------------------------------------------------\n\n";
+    // cout << "Command:\tView Liked Pages\n\n";
+    // cout << "--------------------------------------------------------------------------\n\n";
+    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Liked Pages\n\n";
 
-    allUsers[currentUser]->ViewLikedPages();
+    // allUsers[currentUser]->ViewLikedPages();
+
+
+
+    // JUST FOR DEBUGGING
+
+    // for(int i = 0; i < totalUsers; i++)
+    // {
+    //     cout << "User: " << allUsers[i]->GetID() << " - " << allUsers[i]->GetFirstName() << " " << allUsers[i]->GetLastName() << endl;
+    //     Post** userTimeline = allUsers[i]->timeline;
+    //     cout << "Timeline:" << endl;
+    //     for(int j = 0; j < 10; j++)
+    //     {
+    //         if(userTimeline[j] != nullptr)
+    //         {
+    //             cout << "Post ID: " << userTimeline[j]->id << endl;
+    //             cout << "Content: " << userTimeline[j]->content << endl;
+    //             cout << "Date: " << userTimeline[j]->day << "/" << userTimeline[j]->month << "/" << userTimeline[j]->year << endl;
+    //             cout << "--------------------------------------------------------------------------\n\n";
+    //         }
+    //     }
+    //     cout << endl << endl << endl << endl;
+    // }
 
     inputFile1.close();
     inputFile2.close();
     inputFile3.close();
+    inputFile4.close();
 }
 
 
