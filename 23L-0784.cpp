@@ -3,10 +3,10 @@
 using namespace std;
 
 class Object;
-class Page;
-class User;
 class Post;
 class Controller;
+class Page;
+class User;
 class Helper;
 
 
@@ -18,6 +18,8 @@ class Object
 {
     private:
         char* id;
+        const int maxSize = 10;
+        int index;
 
     protected:
         Post** timeline;
@@ -25,73 +27,19 @@ class Object
     public:
         Object();
         ~Object();
-        void AddToTimeline(Post*);
         virtual const char* GetID();
+        virtual const char* GetTitle();
+        virtual const char* GetFirstName();
+        virtual const char* GetLastName();
+        void AddToTimeline(Post*);
+        void PrintTimeline(User*);
+        void PrintTimeline(Page*);
 };
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-class Page : public Object
-{
-    private:
-        char* id;
-        char* title;
-    
-    public:
-        Page();
-        ~Page();
-        void ReadDataFromFile(ifstream&);
-        const char* GetID();
-        const char* GetTitle();
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-class User : public Object
-{
-    private:
-        char* id;
-        char* fName;
-        char* lName;
-        User** friendsList;
-        Page** likedPages;
-        int friendsCount;
-        int likedPagesCount;
-        const int maximumFriends = 10;
-        const int maximumLikedPages = 10;
-
-    public:
-        User();
-        ~User();
-        void ReadDataFromFile(ifstream&);
-        void AddFriend(User*&);
-        void LikePage(Page*&);
-        void ViewLikedPages();
-        void ViewFriendsList();
-        const char* GetID();
-        const char* GetFirstName();
-        const char* GetLastName();
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class Helper
-{
-    public:
-        static bool SubStringExists(const char*, const char*);
-        static int StringLength(char*);
-        static char* GetStringFromBuffer(char*);
-        static void StringCopy(char*&, char*&);
-};
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 class Post
@@ -102,6 +50,8 @@ class Post
         int day;
         int month;
         int year;
+        int likeCount;
+        const int maxSize = 10;
         Object* sharedBy;
         Object** likedBy;
 
@@ -110,6 +60,14 @@ class Post
         ~Post();
         void ReadDataFromFile(ifstream&);
         void SetSharedBy(Object*);
+        void SetLikedBy(Object*);
+        int GetDay();
+        int GetMonth();
+        int GetYear();
+        const char* GetID();
+        const char* GetContent();
+        Object* GetSharedBy();
+        void PrintLikedBy(Object*);
 };
 
 
@@ -142,12 +100,75 @@ class Controller
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+class User : public Object
+{
+    private:
+        char* id;
+        char* fName;
+        char* lName;
+        User** friendsList;
+        Page** likedPages;
+        int friendsCount;
+        int likedPagesCount;
+        const int maximumFriends = 10;
+        const int maximumLikedPages = 10;
+
+    public:
+        User();
+        ~User();
+        void ReadDataFromFile(ifstream&);
+        void AddFriend(User*&);
+        void LikePage(Page*&);
+        void ViewLikedPages();
+        void ViewFriendsList();
+        const char* GetID();
+        const char* GetFirstName();
+        const char* GetLastName();
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Page : public Object
+{
+    private:
+        char* id;
+        char* title;
+    
+    public:
+        Page();
+        ~Page();
+        void ReadDataFromFile(ifstream&);
+        const char* GetID();
+        const char* GetTitle();
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+class Helper
+{
+    public:
+        static bool SubStringExists(const char*, const char*);
+        static int StringLength(char*);
+        static char* GetStringFromBuffer(char*);
+        static void StringCopy(char*&, char*&);
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 Object::Object()
 {
     id = nullptr;
-    timeline = new Post*[10];
-    for(int i = 0; i < 10; i++)
+
+    timeline = new Post*[maxSize];
+
+    for(int i = 0; i < maxSize; i++)
         timeline[i] = nullptr;
+
+    index = 0;
 }
 
 Object::~Object()
@@ -159,15 +180,21 @@ Object::~Object()
 
 void Object::AddToTimeline(Post* post)
 {
-    int index = 0;
+    for(int i = 0; i < index; i++)
+        if(timeline[i] == post)
+            return;
 
-    while(index < 10 && timeline[index] != nullptr)
-        index++;
-
-    if(index < 10)
-        timeline[index] = post;
-    else    
-        cout << "\nTimeline is full. Cannot add more posts.\n";
+    for(int i = 0; i < maxSize; i++)
+    {
+        if(timeline[i] == nullptr)
+        {
+            timeline[i] = post;
+            index++;
+            return;
+        }
+    }    
+    
+    cout << "\nTimeline is full. Cannot add more posts.\n";
 }
 
 
@@ -176,6 +203,48 @@ const char* Object::GetID()
     return id;
 }
 
+const char* Object::GetFirstName()
+{
+    return nullptr;
+}
+
+const char* Object::GetLastName()
+{
+    return nullptr;
+}
+
+const char* Object::GetTitle()
+{
+    return nullptr;
+}
+
+void Object::PrintTimeline(User* user)
+{
+    cout << user->GetFirstName() << " " << user->GetLastName() << " - Timeline\n\n";
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == user)
+        {
+            cout << "--- " << user->GetFirstName() << " " << user->GetLastName() << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
+}
+
+void Object::PrintTimeline(Page* page)
+{
+    cout << page->GetTitle() << endl;
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == page)
+        {
+            cout << "---" << page->GetTitle() << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -287,22 +356,22 @@ Post::Post()
     id = nullptr;
     content = nullptr;
     sharedBy = nullptr;
-    likedBy = nullptr;
+
+    likedBy = new Object*[maxSize];
+
+    for(int i = 0; i < maxSize; i++)
+        likedBy[i] = nullptr;
+
     day = 0;
     month = 0;
     year = 0;
+    likeCount = 0;
 }
 
 Post::~Post()
 {
     delete[] id;
     delete[] content;
-
-    if(likedBy)
-    {
-        for(int i = 0; i < 10; i++)
-            delete[] likedBy[i];
-    }
     delete[] likedBy;
 }
 
@@ -328,6 +397,56 @@ void Post::ReadDataFromFile(ifstream& inputFile)
 void Post::SetSharedBy(Object* obj)
 {
     sharedBy = obj;
+}
+
+void Post::SetLikedBy(Object* obj)
+{
+    likedBy[likeCount] = obj;
+    likeCount++;
+}
+
+int Post::GetDay()
+{
+    return day;
+}
+
+int Post::GetMonth()
+{
+    return month;
+}
+
+int Post::GetYear()
+{
+    return year;
+}
+
+const char* Post::GetID()
+{
+    return id;
+}
+
+const char* Post::GetContent()
+{
+    return content;
+}
+
+Object* Post::GetSharedBy()
+{
+    return sharedBy;
+}
+
+void Post::PrintLikedBy(Object* obj)
+{
+    cout << "Post Liked By:\n";
+
+    for(int i = 0; i < likeCount; i++)
+    {
+        if(likedBy[i]->GetTitle() != nullptr)
+            cout << likedBy[i]->GetID() << " -" << likedBy[i]->GetTitle() << endl;
+        
+        else
+            cout << likedBy[i]->GetID() << " - " << likedBy[i]->GetFirstName() << " " << likedBy[i]->GetLastName() << endl;
+    }
 }
 
 
@@ -515,17 +634,35 @@ void Controller::LoadAllPosts(ifstream& inputFile)
         allPosts[i]->ReadDataFromFile(inputFile);
 
         const char idSize = 4;
-        char temp[idSize];
+        char temp1[idSize];
 
-        inputFile >> temp;
+        inputFile >> temp1;
 
-        Object* ptr = SearchUserByID(temp);
+        Object* ptr = SearchUserByID(temp1);
 
         if(!ptr)
-            ptr = SearchPageByID(temp);
+            ptr = SearchPageByID(temp1);
 
         allPosts[i]->SetSharedBy(ptr);
-        ptr->AddToTimeline(allPosts[i]);        
+        ptr->AddToTimeline(allPosts[i]);
+
+        char temp2[idSize];
+
+        while(true)
+        {
+            inputFile >> temp2;
+
+            if(temp2[0] == '-' && temp2[1] == '1')
+                break;
+
+            Object* ptr = SearchUserByID(temp2);
+
+            if(!ptr)
+                ptr = SearchPageByID(temp2);
+
+            allPosts[i]->SetLikedBy(ptr);
+            ptr->AddToTimeline(allPosts[i]);
+        }        
     }
 }
 
@@ -607,44 +744,46 @@ void Controller::LoadData()
     LinkUsersAndPages(inputFile3);
     LoadAllPosts(inputFile4);
 
-    // int currentUser = 6;
+    int currentUser = 6;
+    User* user = allUsers[currentUser];
 
-    // cout << "\nCommand:\tSet Current User \"" << allUsers[currentUser]->GetID() << "\"\n";
-    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " succesfully set as Current User\n\n";
-    // cout << "Command:\tView Friend List\n\n";
-    // cout << "--------------------------------------------------------------------------\n\n";
-    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Friend List\n\n";
+    cout << "\nCommand:\tSet Current User \"" << user->GetID() << "\"\n";
+    cout << user->GetFirstName() << " " << user->GetLastName() << " succesfully set as Current User\n\n";
+    
+    cout << "Command:\tView Friend List\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << user->GetFirstName() << " " << user->GetLastName() << " - Friend List\n\n";
 
-    // allUsers[currentUser]->ViewFriendsList();    
+    user->ViewFriendsList();    
 
-    // cout << "\n--------------------------------------------------------------------------\n\n";
-    // cout << "Command:\tView Liked Pages\n\n";
-    // cout << "--------------------------------------------------------------------------\n\n";
-    // cout << allUsers[currentUser]->GetFirstName() << " " << allUsers[currentUser]->GetLastName() << " - Liked Pages\n\n";
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Liked Pages\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << user->GetFirstName() << " " << user->GetLastName() << " - Liked Pages\n\n";
 
-    // allUsers[currentUser]->ViewLikedPages();
+    user->ViewLikedPages();
 
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Timeline\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    
+    user->PrintTimeline(user);
 
+    int currentPost = 4;
+    Post* post = allPosts[currentPost];
 
-    // JUST FOR DEBUGGING
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Liked List of \"" << post->GetID() << "\"\n\n";
 
-    // for(int i = 0; i < totalUsers; i++)
-    // {
-    //     cout << "User: " << allUsers[i]->GetID() << " - " << allUsers[i]->GetFirstName() << " " << allUsers[i]->GetLastName() << endl;
-    //     Post** userTimeline = allUsers[i]->timeline;
-    //     cout << "Timeline:" << endl;
-    //     for(int j = 0; j < 10; j++)
-    //     {
-    //         if(userTimeline[j] != nullptr)
-    //         {
-    //             cout << "Post ID: " << userTimeline[j]->id << endl;
-    //             cout << "Content: " << userTimeline[j]->content << endl;
-    //             cout << "Date: " << userTimeline[j]->day << "/" << userTimeline[j]->month << "/" << userTimeline[j]->year << endl;
-    //             cout << "--------------------------------------------------------------------------\n\n";
-    //         }
-    //     }
-    //     cout << endl << endl << endl << endl;
-    // }
+    post->PrintLikedBy(user);
+
+    int currentPage = 0;
+    Page* page = allPages[currentPage];
+
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Page \"" << page->GetID() << "\"\n\n";
+
+    page->PrintTimeline(page);
 
     inputFile1.close();
     inputFile2.close();
