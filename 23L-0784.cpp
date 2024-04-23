@@ -19,10 +19,10 @@ class Object
     private:
         char* id;
         const int maxSize = 10;
-        int index;
 
     protected:
         Post** timeline;
+        int index;
 
     public:
         Object();
@@ -32,8 +32,6 @@ class Object
         virtual const char* GetFirstName();
         virtual const char* GetLastName();
         void AddToTimeline(Post*);
-        void PrintTimeline(User*);
-        void PrintTimeline(Page*);
 };
 
 
@@ -78,12 +76,12 @@ class Post
 class Controller
 {
     private:
-        User** allUsers;
-        Page** allPages;
-        Post** allPosts;
         int totalUsers;
         int totalPages;
         int totalPosts;
+        User** allUsers;
+        Page** allPages;
+        Post** allPosts;
 
     public:
         Controller();
@@ -107,12 +105,12 @@ class User : public Object
         char* id;
         char* fName;
         char* lName;
-        User** friendsList;
-        Page** likedPages;
         int friendsCount;
         int likedPagesCount;
         const int maximumFriends = 10;
         const int maximumLikedPages = 10;
+        User** friendsList;
+        Page** likedPages;
 
     public:
         User();
@@ -125,6 +123,7 @@ class User : public Object
         const char* GetID();
         const char* GetFirstName();
         const char* GetLastName();
+        void PrintTimeline(User*);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +140,7 @@ class Page : public Object
         void ReadDataFromFile(ifstream&);
         const char* GetID();
         const char* GetTitle();
+        void PrintTimeline(Page*);
 };
 
 
@@ -216,34 +216,6 @@ const char* Object::GetLastName()
 const char* Object::GetTitle()
 {
     return nullptr;
-}
-
-void Object::PrintTimeline(User* user)
-{
-    cout << user->GetFirstName() << " " << user->GetLastName() << " - Timeline\n\n";
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == user)
-        {
-            cout << "--- " << user->GetFirstName() << " " << user->GetLastName() << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
-        }
-    }
-}
-
-void Object::PrintTimeline(Page* page)
-{
-    cout << page->GetTitle() << endl;
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == page)
-        {
-            cout << "---" << page->GetTitle() << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
-        }
-    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -324,17 +296,20 @@ Page::~Page()
 void Page::ReadDataFromFile(ifstream& inputFile)
 {
     const int idSize = 4;
-    char temp1[idSize];
+    char* temp1 = new char[idSize];
 
     inputFile >> temp1;
     id = Helper::GetStringFromBuffer(temp1);
 
     const int titleSize = 50;
-    char temp2[titleSize];
+    char* temp2 = new char[titleSize];
 
     inputFile.getline(temp2, titleSize - 1);
 
     title = Helper::GetStringFromBuffer(temp2);
+
+    delete[] temp1;
+    delete[] temp2;
 }
 
 const char* Page::GetID()
@@ -345,6 +320,20 @@ const char* Page::GetID()
 const char* Page::GetTitle()
 {
     return title;
+}
+
+void Page::PrintTimeline(Page* page)
+{
+    cout << page->title << endl;
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == page)
+        {
+            cout << "---" << page->title << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
 }
 
 
@@ -378,7 +367,7 @@ Post::~Post()
 void Post::ReadDataFromFile(ifstream& inputFile)
 {
     const int idSize = 7;
-    char temp1[idSize];
+    char* temp1 = new char[idSize];
 
     inputFile >> temp1;
     id = Helper::GetStringFromBuffer(temp1);
@@ -386,12 +375,15 @@ void Post::ReadDataFromFile(ifstream& inputFile)
     inputFile >> day >> month >> year;
 
     const int contentSize = 80;
-    char temp2[contentSize];
+    char* temp2 = new char[contentSize];
     
     inputFile.ignore(99, '\n');
     
     inputFile.getline(temp2, contentSize - 1);
     content = Helper::GetStringFromBuffer(temp2);
+
+    delete[] temp1;
+    delete[] temp2;
 }
 
 void Post::SetSharedBy(Object* obj)
@@ -481,19 +473,22 @@ User::~User()
 void User::ReadDataFromFile(ifstream& inputFile)
 {
     const int idSize = 4;
-    char temp1[idSize];
+    char* temp1 = new char[idSize];
 
     inputFile >> temp1;
     id = Helper::GetStringFromBuffer(temp1);
 
     const int nameSize = 15;
-    char temp2[nameSize];
+    char* temp2 = new char[nameSize];
 
     inputFile >> temp2;
     fName = Helper::GetStringFromBuffer(temp2);
 
     inputFile >> temp2;
     lName = Helper::GetStringFromBuffer(temp2);
+
+    delete[] temp1;
+    delete[] temp2;
 }
 
 
@@ -551,6 +546,20 @@ const char* User::GetFirstName()
 const char* User::GetLastName()
 {
     return lName;
+}
+
+void User::PrintTimeline(User* user)
+{
+    cout << user->fName << " " << user->lName << " - Timeline\n\n";
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == user)
+        {
+            cout << "--- " << user->fName << " " << user->lName << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
 }
 
 
@@ -634,7 +643,7 @@ void Controller::LoadAllPosts(ifstream& inputFile)
         allPosts[i]->ReadDataFromFile(inputFile);
 
         const char idSize = 4;
-        char temp1[idSize];
+        char* temp1 = new char[idSize];
 
         inputFile >> temp1;
 
@@ -646,7 +655,7 @@ void Controller::LoadAllPosts(ifstream& inputFile)
         allPosts[i]->SetSharedBy(ptr);
         ptr->AddToTimeline(allPosts[i]);
 
-        char temp2[idSize];
+        char* temp2 = new char[idSize];
 
         while(true)
         {
@@ -662,7 +671,10 @@ void Controller::LoadAllPosts(ifstream& inputFile)
 
             allPosts[i]->SetLikedBy(ptr);
             ptr->AddToTimeline(allPosts[i]);
-        }        
+        }   
+
+        delete[] temp1;
+        delete[] temp2;     
     }
 }
 
