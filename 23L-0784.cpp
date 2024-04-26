@@ -21,8 +21,8 @@ class Object
         const int maxSize = 10;
 
     protected:
-        Post** timeline;
         int index;
+        Post** timeline;
 
     public:
         Object();
@@ -64,8 +64,8 @@ class Post
         int GetYear();
         const char* GetID();
         const char* GetContent();
-        Object* GetSharedBy();
         void PrintLikedBy(Object*);
+        Object* GetSharedBy();
 };
 
 
@@ -93,6 +93,7 @@ class Controller
         void LinkUsersAndPages(ifstream&);
         void LoadAllPosts(ifstream&);
         void LoadData();
+        void Run();
 };
 
 
@@ -743,18 +744,8 @@ Page* Controller::SearchPageByID(const char* id)
     return nullptr;
 }
 
-
-void Controller::LoadData()
+void Controller::Run()
 {
-    ifstream inputFile1("SocialNetworkUsers.txt");
-    ifstream inputFile2("SocialNetworkPages.txt");
-    ifstream inputFile3("UsersFriendsAndLikedPages.txt");
-    ifstream inputFile4("SocialNetworkPosts.txt");
-
-    LoadAllUsers(inputFile1);
-    LoadAllPages(inputFile2);
-    LinkUsersAndPages(inputFile3);
-    LoadAllPosts(inputFile4);
 
     int currentUser = 6;
     User* user = allUsers[currentUser];
@@ -781,6 +772,8 @@ void Controller::LoadData()
     
     user->PrintTimeline(user);
 
+
+
     int currentPost = 4;
     Post* post = allPosts[currentPost];
 
@@ -789,6 +782,9 @@ void Controller::LoadData()
 
     post->PrintLikedBy(user);
 
+
+
+
     int currentPage = 0;
     Page* page = allPages[currentPage];
 
@@ -796,13 +792,26 @@ void Controller::LoadData()
     cout << "Command:\tViewing Page \"" << page->GetID() << "\"\n\n";
 
     page->PrintTimeline(page);
+}
+
+
+void Controller::LoadData()
+{
+    ifstream inputFile1("SocialNetworkUsers.txt");
+    ifstream inputFile2("SocialNetworkPages.txt");
+    ifstream inputFile3("UsersFriendsAndLikedPages.txt");
+    ifstream inputFile4("SocialNetworkPosts.txt");
+
+    LoadAllUsers(inputFile1);
+    LoadAllPages(inputFile2);
+    LinkUsersAndPages(inputFile3);
+    LoadAllPosts(inputFile4);
 
     inputFile1.close();
     inputFile2.close();
     inputFile3.close();
     inputFile4.close();
 }
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -812,6 +821,7 @@ int main()
 {
     Controller mainApp;
     mainApp.LoadData();
+    mainApp.Run();
 
     return 0;
 }
