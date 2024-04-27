@@ -325,13 +325,15 @@ const char* Page::GetTitle()
 
 void Page::PrintTimeline(Page* page)
 {
-    cout << page->title << endl;
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Page \"" << id << "\"\n\n";
+    cout << title << endl;
 
     for(int i = 0; i < index; i++)
     {
         if(timeline[i]->GetSharedBy() == page)
         {
-            cout << "---" << page->title << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "---" << title << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
             cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
         }
     }
@@ -430,6 +432,8 @@ Object* Post::GetSharedBy()
 
 void Post::PrintLikedBy(Object* obj)
 {
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Liked List of \"" << id << "\"\n\n";
     cout << "Post Liked By:\n";
 
     for(int i = 0; i < likeCount; i++)
@@ -455,8 +459,15 @@ User::User()
     lName = nullptr;
     friendsList = nullptr;
     likedPages = nullptr;
+
     friendsList = new User*[maximumFriends];
+    for(int i = 0; i < maximumFriends; i++)
+        friendsList[i] = nullptr;
+
     likedPages = new Page*[maximumLikedPages];
+    for(int i = 0; i < maximumLikedPages; i++)
+        likedPages[i] = nullptr;
+
     friendsCount = 0;
     likedPagesCount = 0;
 }
@@ -495,9 +506,6 @@ void User::ReadDataFromFile(ifstream& inputFile)
 
 void User::AddFriend(User*& friendUser)
 {
-    if(friendsList == nullptr)
-        friendsList = new User*[maximumFriends];
-
     if(friendsCount < maximumFriends)
     {
         friendsList[friendsCount] = friendUser;
@@ -509,9 +517,6 @@ void User::AddFriend(User*& friendUser)
 
 void User::LikePage(Page*& page)
 {
-    if(likedPages == nullptr)
-        likedPages = new Page*[maximumLikedPages];
-
     if(likedPagesCount < maximumLikedPages)
     {
         likedPages[likedPagesCount] = page;
@@ -523,12 +528,23 @@ void User::LikePage(Page*& page)
 
 void User::ViewFriendsList()
 {
+    cout << "\nCommand:\tSet Current User \"" << id << "\"\n";
+    cout << fName << " " << lName << " succesfully set as Current User\n\n";
+    cout << "Command:\tView Friend List\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << fName << " " << lName << " - Friend List\n\n";
+
     for(int i = 0; i < friendsCount; i++)
         cout << friendsList[i]->GetID() << " - " << friendsList[i]->GetFirstName() << " " << friendsList[i]->GetLastName() << endl;
 }
 
 void User::ViewLikedPages()
 {
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Liked Pages\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << fName << " " << lName << " - Liked Pages\n\n";
+
     for(int i = 0; i < likedPagesCount; i++)
         cout << likedPages[i]->GetID() << " - " << likedPages[i]->GetTitle() << endl;
 }
@@ -551,13 +567,16 @@ const char* User::GetLastName()
 
 void User::PrintTimeline(User* user)
 {
-    cout << user->fName << " " << user->lName << " - Timeline\n\n";
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Timeline\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << fName << " " << lName << " - Timeline\n\n";
 
     for(int i = 0; i < index; i++)
     {
         if(timeline[i]->GetSharedBy() == user)
         {
-            cout << "--- " << user->fName << " " << user->lName << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
+            cout << "--- " << fName << " " << lName << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
             cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
         }
     }
@@ -746,50 +765,22 @@ Page* Controller::SearchPageByID(const char* id)
 
 void Controller::Run()
 {
-
     int currentUser = 6;
     User* user = allUsers[currentUser];
 
-    cout << "\nCommand:\tSet Current User \"" << user->GetID() << "\"\n";
-    cout << user->GetFirstName() << " " << user->GetLastName() << " succesfully set as Current User\n\n";
-    
-    cout << "Command:\tView Friend List\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << user->GetFirstName() << " " << user->GetLastName() << " - Friend List\n\n";
-
     user->ViewFriendsList();    
 
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tView Liked Pages\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << user->GetFirstName() << " " << user->GetLastName() << " - Liked Pages\n\n";
-
     user->ViewLikedPages();
-
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tView Timeline\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
     
     user->PrintTimeline(user);
-
-
 
     int currentPost = 4;
     Post* post = allPosts[currentPost];
 
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tViewing Liked List of \"" << post->GetID() << "\"\n\n";
-
     post->PrintLikedBy(user);
-
-
-
 
     int currentPage = 0;
     Page* page = allPages[currentPage];
-
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tViewing Page \"" << page->GetID() << "\"\n\n";
 
     page->PrintTimeline(page);
 }
