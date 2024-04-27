@@ -8,6 +8,8 @@ class Controller;
 class Page;
 class User;
 class Date;
+class PostContent;
+class Activity;
 class Helper;
 
 
@@ -33,6 +35,8 @@ class Object
         virtual const char* GetFirstName();
         virtual const char* GetLastName();
         void AddToTimeline(Post*);
+        void PrintTimeline(User*);
+        void PrintTimeline(Page*);
 };
 
 
@@ -50,9 +54,11 @@ class Post
         int month;
         int year;
         int likeCount;
+        int activityCount;
         const int maxSize = 10;
         Object* sharedBy;
         Object** likedBy;
+        Activity** activity;
 
     public:
         Post();
@@ -67,6 +73,9 @@ class Post
         const char* GetContent();
         void PrintLikedBy(Object*);
         Object* GetSharedBy();
+        void AddToTimeline(Activity*);
+        int GetActivityCount();
+        Activity* GetActivity(int);
 };
 
 
@@ -84,16 +93,19 @@ class Controller
         User** allUsers;
         Page** allPages;
         Post** allPosts;
+        Activity** allActivities;
 
     public:
         Controller();
         ~Controller();
         User* SearchUserByID(const char*);
         Page* SearchPageByID(const char*);
+        Post* SearchPostByID(const char*);
         void LoadAllUsers(ifstream&);
         void LoadAllPages(ifstream&);
         void LinkUsersAndPages(ifstream&);
         void LoadAllPosts(ifstream&);
+        void LoadAllActivities(ifstream&);
         void LoadData();
         void Run();
 };
@@ -126,7 +138,6 @@ class User : public Object
         const char* GetID();
         const char* GetFirstName();
         const char* GetLastName();
-        void PrintTimeline(User*);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,7 +154,6 @@ class Page : public Object
         void ReadDataFromFile(ifstream&);
         const char* GetID();
         const char* GetTitle();
-        void PrintTimeline(Page*);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,11 +169,32 @@ class Date
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class PostContent
+{
+    protected:
+        char* postID;
 
+    public:
+        PostContent();
+        virtual ~PostContent();
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+class Activity : public PostContent
+{
+    friend class Controller;
 
+    private:
+        int type;
+        char* value;
+
+    public:
+        Activity();
+        ~Activity();
+        int GetType();
+        const char* GetValue();
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -183,11 +214,39 @@ class Helper
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+Activity::Activity()
+{
+    type = 0;
+    value = nullptr;
+}
+
+Activity::~Activity()
+{
+    delete[] value;
+}
+
+int Activity::GetType()
+{
+    return type;
+}
+
+const char* Activity::GetValue()
+{
+    return value;
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+PostContent::PostContent()
+{
+    postID = nullptr;
+}
 
+PostContent::~PostContent()
+{
+    delete[] postID;
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +310,104 @@ const char* Object::GetTitle()
 {
     return nullptr;
 }
+
+
+void Object::PrintTimeline(User* user)
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Timeline\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << user->GetFirstName() << " " << user->GetLastName() << " - Timeline\n\n";
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == user)
+        {
+            cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
+
+            for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+            {
+                Activity* activity = timeline[i]->GetActivity(j);
+                int type = activity->GetType();
+                const char* value = activity->GetValue();
+
+                switch(type)
+                {
+                    case 1:
+                        cout << " is Feeling";
+                        break;
+                    case 2:
+                        cout << " is Thinking about";
+                        break;
+                    case 3:
+                        cout << " is Making";
+                        break;
+                    case 4:
+                        cout << " is Celebrating";
+                        break;
+                    default:
+                        cout << " Activity";
+                        break;
+                }
+
+                cout << value;
+            }
+
+            cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
+}
+
+void Object::PrintTimeline(Page* page)
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Page \"" << page->GetID() << "\"\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << page->GetTitle() << endl;
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == page)
+        {
+            cout << "--- " << page->GetTitle();
+
+            for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+            {
+                Activity* activity = timeline[i]->GetActivity(j);
+                int type = activity->GetType();
+                const char* value = activity->GetValue();
+
+                switch(type)
+                {
+                    case 1:
+                        cout << " is Feeling";
+                        break;
+                    case 2:
+                        cout << " is Thinking about";
+                        break;
+                    case 3:
+                        cout << " is Making";
+                        break;
+                    case 4:
+                        cout << " is Celebrating";
+                        break;
+                    default:
+                        cout << " Activity";
+                        break;
+                }
+
+                cout << value;
+            }
+
+            cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+        }
+    }
+}
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -356,24 +513,6 @@ const char* Page::GetTitle()
     return title;
 }
 
-void Page::PrintTimeline(Page* page)
-{
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tViewing Page \"" << id << "\"\n\n";
-    cout << title << endl;
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == page)
-        {
-            cout << "---" << title << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
-        }
-    }
-}
-
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Post::Post()
@@ -387,10 +526,16 @@ Post::Post()
     for(int i = 0; i < maxSize; i++)
         likedBy[i] = nullptr;
 
+    activity = new Activity*[maxSize];
+
+    for(int i =0; i < maxSize; i++)
+        activity[i] = nullptr;
+
     day = 0;
     month = 0;
     year = 0;
     likeCount = 0;
+    activityCount = 0;
 }
 
 Post::~Post()
@@ -398,6 +543,7 @@ Post::~Post()
     delete[] id;
     delete[] content;
     delete[] likedBy;
+    delete[] activity;
 }
 
 void Post::ReadDataFromFile(ifstream& inputFile)
@@ -479,6 +625,34 @@ void Post::PrintLikedBy(Object* obj)
     }
 }
 
+void Post::AddToTimeline(Activity* act)
+{
+    for(int i = 0; i < activityCount; i++)
+        if(activity[i] == act)
+            return;
+
+    for(int i = 0; i < maxSize; i++)
+    {
+        if(activity[i] == nullptr)
+        {
+            activity[i] = act;
+            activityCount++;
+            return;
+        }
+    }
+
+    cout << "\nTimeline is full. Cannot add more activities.\n";
+}
+
+int Post::GetActivityCount()
+{
+    return activityCount;
+}
+
+Activity* Post::GetActivity(int index)
+{
+    return activity[index];
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -561,8 +735,10 @@ void User::LikePage(Page*& page)
 
 void User::ViewFriendsList()
 {
-    cout << "\nCommand:\tSet Current User \"" << id << "\"\n";
+    cout << "\nCommand:\tSet Current User \"" << id << "\"\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
     cout << fName << " " << lName << " succesfully set as Current User\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
     cout << "Command:\tView Friend List\n\n";
     cout << "--------------------------------------------------------------------------\n\n";
     cout << fName << " " << lName << " - Friend List\n\n";
@@ -598,22 +774,6 @@ const char* User::GetLastName()
     return lName;
 }
 
-void User::PrintTimeline(User* user)
-{
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tView Timeline\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << fName << " " << lName << " - Timeline\n\n";
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == user)
-        {
-            cout << "--- " << fName << " " << lName << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << "):\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
-        }
-    }
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -638,6 +798,7 @@ Controller::Controller()
     allUsers = nullptr;
     allPages = nullptr;
     allPosts = nullptr;
+    allActivities = nullptr;
 }
 
 Controller::~Controller()
@@ -665,6 +826,14 @@ Controller::~Controller()
     }
 
     delete[] allPosts;
+
+    if(allActivities != nullptr)
+    {
+        for(int i = 0; i < totalActivities; i++)
+            delete allActivities[i];
+    }
+
+    delete[] allActivities;
 }
 
 void Controller::LoadAllUsers(ifstream& inputFile)
@@ -783,6 +952,42 @@ void Controller::LinkUsersAndPages(ifstream& inputFile)
     delete[] temp;
 }
 
+void Controller::LoadAllActivities(ifstream& inputFile)
+{
+    inputFile >> totalActivities;
+
+    allActivities = new Activity*[totalActivities];
+
+    for(int i = 0; i < totalActivities; i++)
+    {
+        allActivities[i] = new Activity;
+        
+        const int idSize = 7;
+        const int valueSize = 30;
+
+        char* temp1 = new char[idSize];
+        char* temp2 = new char[valueSize];
+
+        inputFile >> temp1;
+
+        allActivities[i]->postID = Helper::GetStringFromBuffer(temp1);
+
+        Post* ptr = SearchPostByID(allActivities[i]->postID);
+
+        if(ptr)
+            ptr->AddToTimeline(allActivities[i]);
+
+        inputFile >> allActivities[i]->type;
+
+        inputFile.getline(temp2, valueSize);
+
+        allActivities[i]->value = Helper::GetStringFromBuffer(temp2);
+
+        delete[] temp1;
+        delete[] temp2;
+    }
+}
+
 
 User* Controller::SearchUserByID(const char* id)
 {
@@ -800,6 +1005,17 @@ Page* Controller::SearchPageByID(const char* id)
     {
         if(Helper::SubStringExists(allPages[i]->GetID(), id))
             return allPages[i];
+    }
+
+    return nullptr;
+}
+
+Post* Controller::SearchPostByID(const char* id)
+{
+    for(int i = 0; i < totalPosts; i++)
+    {
+        if(Helper::SubStringExists(allPosts[i]->GetID(), id))
+            return allPosts[i];
     }
 
     return nullptr;
@@ -843,6 +1059,7 @@ void Controller::LoadData()
     LoadAllPages(inputFile2);
     LinkUsersAndPages(inputFile3);
     LoadAllPosts(inputFile4);
+    LoadAllActivities(inputFile5);
 
     inputFile1.close();
     inputFile2.close();
