@@ -7,6 +7,7 @@ class Post;
 class Controller;
 class Page;
 class User;
+class Date;
 class Helper;
 
 
@@ -79,6 +80,7 @@ class Controller
         int totalUsers;
         int totalPages;
         int totalPosts;
+        int totalActivities;
         User** allUsers;
         Page** allPages;
         Post** allPosts;
@@ -144,8 +146,28 @@ class Page : public Object
         void PrintTimeline(Page*);
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Date
+{
+    public:
+        static const int day = 17;
+        static const int month = 4;
+        static const int year = 2024;
+        static void CurrentDate();
+};
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 class Helper
@@ -159,6 +181,17 @@ class Helper
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 Object::Object()
 {
@@ -582,7 +615,16 @@ void User::PrintTimeline(User* user)
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void Date::CurrentDate()
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tSet Current System Date " << "\"" << day << "-" << month << "-" << year << "\"" << "\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << "System Date:\t" << day << "/" << month << "/" << year << "\n\n";
+    cout << "--------------------------------------------------------------------------\n";
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -592,6 +634,7 @@ Controller::Controller()
     totalUsers = 0;
     totalPages = 0;
     totalPosts = 0;
+    totalActivities = 0;
     allUsers = nullptr;
     allPages = nullptr;
     allPosts = nullptr;
@@ -741,7 +784,6 @@ void Controller::LinkUsersAndPages(ifstream& inputFile)
 }
 
 
-
 User* Controller::SearchUserByID(const char* id)
 {
     for(int i = 0; i < totalUsers; i++)
@@ -765,6 +807,8 @@ Page* Controller::SearchPageByID(const char* id)
 
 void Controller::Run()
 {
+    Date::CurrentDate();
+    
     int currentUser = 6;
     User* user = allUsers[currentUser];
 
@@ -792,6 +836,8 @@ void Controller::LoadData()
     ifstream inputFile2("SocialNetworkPages.txt");
     ifstream inputFile3("UsersFriendsAndLikedPages.txt");
     ifstream inputFile4("SocialNetworkPosts.txt");
+    ifstream inputFile5("SocialNetworkActivities.txt");
+    ifstream inputFile6("SocialNetworkComments.txt");
 
     LoadAllUsers(inputFile1);
     LoadAllPages(inputFile2);
@@ -802,6 +848,8 @@ void Controller::LoadData()
     inputFile2.close();
     inputFile3.close();
     inputFile4.close();
+    inputFile5.close();
+    inputFile6.close();
 }
 
 
