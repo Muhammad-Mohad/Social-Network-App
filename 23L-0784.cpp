@@ -10,6 +10,7 @@ class User;
 class Date;
 class PostContent;
 class Activity;
+class Comment;
 class Helper;
 
 
@@ -55,10 +56,12 @@ class Post
         int year;
         int likeCount;
         int activityCount;
+        int commentCount;
         const int maxSize = 10;
         Object* sharedBy;
         Object** likedBy;
         Activity** activity;
+        Comment** comment;
 
     public:
         Post();
@@ -74,8 +77,11 @@ class Post
         void PrintLikedBy(Object*);
         Object* GetSharedBy();
         void AddToTimeline(Activity*);
+        void AddComment(Comment*);
         int GetActivityCount();
         Activity* GetActivity(int);
+        int GetCommentCount();
+        Comment* GetComment(int);
 };
 
 
@@ -90,10 +96,12 @@ class Controller
         int totalPages;
         int totalPosts;
         int totalActivities;
+        int totalComments;
         User** allUsers;
         Page** allPages;
         Post** allPosts;
         Activity** allActivities;
+        Comment** allComments;
 
     public:
         Controller();
@@ -106,6 +114,7 @@ class Controller
         void LinkUsersAndPages(ifstream&);
         void LoadAllPosts(ifstream&);
         void LoadAllActivities(ifstream&);
+        void LoadAllComments(ifstream&);
         void LoadData();
         void Run();
 };
@@ -208,10 +217,62 @@ class Helper
         static int StringLength(char*);
         static char* GetStringFromBuffer(char*);
         static void StringCopy(char*&, char*&);
+        static void RemoveExtraSpaces(char*&);
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Comment
+{
+    friend class Controller;
+
+    private:
+        char* text;
+        char* postId;
+        char* objectId;
+        char* commentId;
+        Object* commentBy;
+
+    public:
+        Comment();
+        ~Comment();
+        const char* GetText();
+        Object* GetCommentBy();
 };
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Comment::Comment()
+{
+    text = nullptr;
+    postId = nullptr;
+    objectId = nullptr;
+    commentId = nullptr;
+    commentBy = nullptr;
+}
+
+Comment::~Comment()
+{
+    delete[] text;
+    delete[] objectId;
+    delete[] postId;
+    delete[] commentId;
+}
+
+const char* Comment::GetText()
+{
+    return text;
+}
+
+Object* Comment::GetCommentBy()
+{
+    return commentBy;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 Activity::Activity()
@@ -354,7 +415,15 @@ void Object::PrintTimeline(User* user)
             }
 
             cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+
+            for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
+            {
+                Comment* cmnt = timeline[i]->GetComment(k);
+                cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
+            }
+
+            cout << endl;
         }
     }
 }
@@ -401,7 +470,23 @@ void Object::PrintTimeline(Page* page)
             }
 
             cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n\n";
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+
+            int commentCount = timeline[i]->GetCommentCount();
+            if(commentCount > 0) 
+            {
+                for (int k = 0; k < commentCount; k++) 
+                {
+                    Comment* comment = timeline[i]->GetComment(k);
+
+                    if(comment->GetCommentBy()->GetTitle() != nullptr)
+                        cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+
+                    else
+                        cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                }
+                cout << endl;
+            }
         }
     }
 }
@@ -432,7 +517,8 @@ bool Helper::SubStringExists(const char* str, const char* subStr)
 int Helper::StringLength(char* str)
 {
     int stringLen = 0;
-    for (char* temp = str; *temp != '\0'; temp++)
+
+    for(char* temp = str; *temp != '\0'; temp++)
         stringLen++;
 
     return stringLen;
@@ -461,7 +547,33 @@ void Helper::StringCopy(char*& dest, char*& src)
     *tempDest = '\0';
 }
 
-
+void Helper::RemoveExtraSpaces(char*& str) 
+{
+    if(str == nullptr) 
+        return;
+    
+    int len = StringLength(str);
+    int start = 0;
+    int end = len - 1;
+    
+    while(start < len && str[start] == ' ') 
+    {
+        start++;
+    }
+    
+    if(start == len) 
+    {
+        str[0] = '\0';
+        return;
+    }
+    
+    for(int i = start; i <= end; i++) 
+    {
+        str[i - start] = str[i];
+    }
+    
+    str[end - start + 1] = '\0';
+}
 
 
 
@@ -497,6 +609,8 @@ void Page::ReadDataFromFile(ifstream& inputFile)
 
     inputFile.getline(temp2, titleSize - 1);
 
+    Helper::RemoveExtraSpaces(temp2);
+
     title = Helper::GetStringFromBuffer(temp2);
 
     delete[] temp1;
@@ -528,14 +642,20 @@ Post::Post()
 
     activity = new Activity*[maxSize];
 
-    for(int i =0; i < maxSize; i++)
+    for(int i = 0; i < maxSize; i++)
         activity[i] = nullptr;
+
+    comment = new Comment*[maxSize];
+
+    for(int i = 0; i < maxSize; i++)
+        comment[i] = nullptr;
 
     day = 0;
     month = 0;
     year = 0;
     likeCount = 0;
     activityCount = 0;
+    commentCount = 0;
 }
 
 Post::~Post()
@@ -544,6 +664,7 @@ Post::~Post()
     delete[] content;
     delete[] likedBy;
     delete[] activity;
+    delete[] comment;
 }
 
 void Post::ReadDataFromFile(ifstream& inputFile)
@@ -562,6 +683,7 @@ void Post::ReadDataFromFile(ifstream& inputFile)
     inputFile.ignore(99, '\n');
     
     inputFile.getline(temp2, contentSize - 1);
+    
     content = Helper::GetStringFromBuffer(temp2);
 
     delete[] temp1;
@@ -611,18 +733,42 @@ Object* Post::GetSharedBy()
 
 void Post::PrintLikedBy(Object* obj)
 {
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tViewing Liked List of \"" << id << "\"\n\n";
-    cout << "Post Liked By:\n";
+    static int count = 0;
+    count++;
 
-    for(int i = 0; i < likeCount; i++)
+    if(count == 1)
     {
-        if(likedBy[i]->GetTitle() != nullptr)
-            cout << likedBy[i]->GetID() << " -" << likedBy[i]->GetTitle() << endl;
-        
-        else
-            cout << likedBy[i]->GetID() << " - " << likedBy[i]->GetFirstName() << " " << likedBy[i]->GetLastName() << endl;
+        cout << "\n--------------------------------------------------------------------------\n\n";
+        cout << "Command:\tViewing Liked List of \"" << id << "\"\n\n";
+        cout << "Post Liked By:\n";
+
+        for(int i = 0; i < likeCount; i++)
+        {
+            if(likedBy[i]->GetTitle() != nullptr)
+                cout << likedBy[i]->GetID() << " -" << likedBy[i]->GetTitle() << endl;
+            
+            else
+                cout << likedBy[i]->GetID() << " - " << likedBy[i]->GetFirstName() << " " << likedBy[i]->GetLastName() << endl;
+        }
     }
+
+    else if(count == 2)
+    {
+        cout << "\n--------------------------------------------------------------------------\n\n";
+        cout << "Command:\tLikedPost \"" << id << "\"\n";
+        cout << "Command:\tViewing Liked List of \"" << id << "\"\n\n";
+        cout << "Post Liked By:\n";
+
+        for(int i = 0; i < likeCount; i++)
+        {
+            if(likedBy[i]->GetTitle() != nullptr)
+                cout << likedBy[i]->GetID() << " -" << likedBy[i]->GetTitle() << endl;
+            
+            else
+                cout << likedBy[i]->GetID() << " - " << likedBy[i]->GetFirstName() << " " << likedBy[i]->GetLastName() << endl;
+        }
+    }
+    
 }
 
 void Post::AddToTimeline(Activity* act)
@@ -644,6 +790,25 @@ void Post::AddToTimeline(Activity* act)
     cout << "\nTimeline is full. Cannot add more activities.\n";
 }
 
+void Post::AddComment(Comment* cmnt)
+{
+    for(int i = 0; i < commentCount; i++)
+        if(comment[i] == cmnt)
+            return;
+
+    for(int i = 0; i < maxSize; i++)
+    {
+        if(comment[i] == nullptr)
+        {
+            comment[i] = cmnt;
+            commentCount++;
+            return;
+        }
+    }
+
+    cout << "\nComments List is full. Cannot add more comments.\n";
+}
+
 int Post::GetActivityCount()
 {
     return activityCount;
@@ -652,6 +817,16 @@ int Post::GetActivityCount()
 Activity* Post::GetActivity(int index)
 {
     return activity[index];
+}
+
+int Post::GetCommentCount()
+{
+    return commentCount;
+}
+
+Comment* Post::GetComment(int index)
+{
+    return comment[index];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -795,10 +970,12 @@ Controller::Controller()
     totalPages = 0;
     totalPosts = 0;
     totalActivities = 0;
+    totalComments = 0;
     allUsers = nullptr;
     allPages = nullptr;
     allPosts = nullptr;
     allActivities = nullptr;
+    allComments = nullptr;
 }
 
 Controller::~Controller()
@@ -834,6 +1011,14 @@ Controller::~Controller()
     }
 
     delete[] allActivities;
+
+    if(allComments != nullptr)
+    {
+        for(int i = 0; i < totalComments; i++)
+            delete allComments[i];
+    }
+
+    delete[] allComments;
 }
 
 void Controller::LoadAllUsers(ifstream& inputFile)
@@ -979,12 +1164,68 @@ void Controller::LoadAllActivities(ifstream& inputFile)
 
         inputFile >> allActivities[i]->type;
 
-        inputFile.getline(temp2, valueSize);
+        inputFile.getline(temp2, valueSize - 1);
 
         allActivities[i]->value = Helper::GetStringFromBuffer(temp2);
 
         delete[] temp1;
         delete[] temp2;
+    }
+}
+
+void Controller::LoadAllComments(ifstream& inputFile)
+{
+    inputFile >> totalComments;
+
+    allComments = new Comment*[totalComments];
+
+    for(int i = 0; i < totalComments; i++)
+    {
+        allComments[i] = new Comment;
+
+        const int IdSize = 4;
+        const int postIdSize = 7;
+        const int textSize = 80;
+
+        char* temp1 = new char[IdSize];
+        char* temp2 = new char[postIdSize];
+        char* temp3 = new char[IdSize];
+        char* temp4 = new char[textSize];
+
+        inputFile >> temp1;
+
+        allComments[i]->commentId = Helper::GetStringFromBuffer(temp1);
+
+        inputFile >> temp2;
+
+        allComments[i]->postId = Helper::GetStringFromBuffer(temp2);
+
+        Post* ptr = SearchPostByID(allComments[i]->postId);
+
+        if(ptr)
+            ptr->AddComment(allComments[i]);
+
+        inputFile >> temp3;
+
+        allComments[i]->objectId = Helper::GetStringFromBuffer(temp3);
+
+        Object* obj = SearchUserByID(allComments[i]->objectId);
+
+        if(!obj)
+            obj = SearchPageByID(allComments[i]->objectId);
+
+        allComments[i]->commentBy = obj;
+
+        inputFile.getline(temp4, textSize - 1);
+
+        Helper::RemoveExtraSpaces(temp4);
+
+        allComments[i]->text = Helper::GetStringFromBuffer(temp4);
+
+        delete[] temp1;
+        delete[] temp2;
+        delete[] temp3;
+        delete[] temp4;
     }
 }
 
@@ -1039,6 +1280,10 @@ void Controller::Run()
 
     post->PrintLikedBy(user);
 
+    post->SetLikedBy(user);
+
+    post->PrintLikedBy(user);
+
     int currentPage = 0;
     Page* page = allPages[currentPage];
 
@@ -1060,6 +1305,7 @@ void Controller::LoadData()
     LinkUsersAndPages(inputFile3);
     LoadAllPosts(inputFile4);
     LoadAllActivities(inputFile5);
+    LoadAllComments(inputFile6);
 
     inputFile1.close();
     inputFile2.close();
