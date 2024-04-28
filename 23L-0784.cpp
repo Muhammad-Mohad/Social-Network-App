@@ -82,6 +82,7 @@ class Post
         Activity* GetActivity(int);
         int GetCommentCount();
         Comment* GetComment(int);
+        void DisplayDate();
 };
 
 
@@ -144,9 +145,12 @@ class User : public Object
         void LikePage(Page*&);
         void ViewLikedPages();
         void ViewFriendsList();
+        void ViewHomePage();
         const char* GetID();
         const char* GetFirstName();
         const char* GetLastName();
+        int GetIndex();
+        Post** GetTimeline();
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,6 +167,8 @@ class Page : public Object
         void ReadDataFromFile(ifstream&);
         const char* GetID();
         const char* GetTitle();
+        int GetIndex();
+        Post** GetTimeline();
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +209,7 @@ class Activity : public PostContent
         ~Activity();
         int GetType();
         const char* GetValue();
+        void DisplayActivity(int);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +301,30 @@ int Activity::GetType()
 const char* Activity::GetValue()
 {
     return value;
+}
+
+void Activity::DisplayActivity(int type)
+{
+    switch(type)
+    {
+        case 1:
+            cout << " is Feeling";
+            break;
+        case 2:
+            cout << " is Thinking about";
+            break;
+        case 3:
+            cout << " is Making";
+            break;
+        case 4:
+            cout << " is Celebrating";
+            break;
+        default:
+            cout << " Activity";
+            break;
+    }
+
+    cout << value;
 }
 
 
@@ -390,31 +421,11 @@ void Object::PrintTimeline(User* user)
             {
                 Activity* activity = timeline[i]->GetActivity(j);
                 int type = activity->GetType();
-                const char* value = activity->GetValue();
-
-                switch(type)
-                {
-                    case 1:
-                        cout << " is Feeling";
-                        break;
-                    case 2:
-                        cout << " is Thinking about";
-                        break;
-                    case 3:
-                        cout << " is Making";
-                        break;
-                    case 4:
-                        cout << " is Celebrating";
-                        break;
-                    default:
-                        cout << " Activity";
-                        break;
-                }
-
-                cout << value;
+                
+                activity->DisplayActivity(type);
             }
 
-            cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
+            timeline[i]->DisplayDate();
             cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
 
             for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
@@ -445,31 +456,11 @@ void Object::PrintTimeline(Page* page)
             {
                 Activity* activity = timeline[i]->GetActivity(j);
                 int type = activity->GetType();
-                const char* value = activity->GetValue();
-
-                switch(type)
-                {
-                    case 1:
-                        cout << " is Feeling";
-                        break;
-                    case 2:
-                        cout << " is Thinking about";
-                        break;
-                    case 3:
-                        cout << " is Making";
-                        break;
-                    case 4:
-                        cout << " is Celebrating";
-                        break;
-                    default:
-                        cout << " Activity";
-                        break;
-                }
-
-                cout << value;
+                
+                activity->DisplayActivity(type);
             }
 
-            cout << " (" << timeline[i]->GetDay() << "/" << timeline[i]->GetMonth() << "/" << timeline[i]->GetYear() << ")\n";
+            timeline[i]->DisplayDate();
             cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
 
             int commentCount = timeline[i]->GetCommentCount();
@@ -625,6 +616,16 @@ const char* Page::GetID()
 const char* Page::GetTitle()
 {
     return title;
+}
+
+int Page::GetIndex()
+{
+    return index;
+}
+
+Post** Page::GetTimeline()
+{
+    return timeline;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -829,6 +830,20 @@ Comment* Post::GetComment(int index)
     return comment[index];
 }
 
+void Post::DisplayDate()
+{
+    if(day == Date::day && month == Date::month && year == Date::year)
+        cout << " (1h)\n";
+    else if(day == Date::day - 1 && month == Date::month && year == Date::year)
+        cout << " (1d)\n";
+    else if(day == Date::day - 2 && month == Date::month && year == Date::year)
+        cout << " (2d)\n";
+    else if(day == Date::day - 3 && month == Date::month && year == Date::year)
+        cout << " (3d)\n";
+    else
+        cout << " (" << day << "/" << month << "/" << year << ")\n";
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -933,6 +948,137 @@ void User::ViewLikedPages()
         cout << likedPages[i]->GetID() << " - " << likedPages[i]->GetTitle() << endl;
 }
 
+void User::ViewHomePage() 
+{
+    int minRequiredDay = 14;
+    int maxRequiredDay = 17;
+    int requiredMonth = 4;
+    int requiredYear = 2024;
+
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Home Page\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << fName << " " << lName << " - Home Page\n\n";
+
+    for(int i = 0; i < index; i++) 
+    {
+        Post* post = timeline[i];
+
+        if(post->GetSharedBy() == this && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear) 
+        {
+            cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
+
+            for (int j = 0; j < post->GetActivityCount(); j++)
+            {
+                Activity* activity = post->GetActivity(j);
+                int type = activity->GetType();
+                
+                activity->DisplayActivity(type);
+            }
+
+            post->DisplayDate();
+            cout << "\t\"" << post->GetContent() << "\"" << endl;
+
+            int commentCount = post->GetCommentCount();
+
+            if(commentCount > 0) 
+            {
+                for(int k = 0; k < commentCount; k++) 
+                {
+                    Comment* comment = post->GetComment(k);
+
+                    if(comment->GetCommentBy()->GetTitle() != nullptr)
+                        cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                    else
+                        cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < friendsCount; i++) 
+    {
+        User* user = friendsList[i];
+
+        for(int j = 0; j < user->GetIndex(); j++)
+        {
+            Post* post = user->GetTimeline()[j];
+
+            if(post->GetSharedBy() == user && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear)
+            {
+                cout << "\n--- " << user->GetFirstName() << " " << user->GetLastName();
+
+                for(int j = 0; j < post->GetActivityCount(); j++)
+                {
+                    Activity* activity = post->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+            post->DisplayDate();
+            cout << "\t\"" << post->GetContent() << "\"" << endl;
+
+                int commentCount = post->GetCommentCount();
+
+                if(commentCount > 0) 
+                {
+                    for(int k = 0; k < commentCount; k++)
+                    {
+                        Comment* comment = post->GetComment(k);
+
+                        if(comment->GetCommentBy()->GetTitle() != nullptr)
+                            cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                        else
+                            cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                    }
+                }
+            }
+        }
+    }
+
+    for(int i = 0; i < likedPagesCount; i++) 
+    {
+        Page* page = likedPages[i];
+
+        for(int j = 0; j < page->GetIndex(); j++) 
+        {
+            Post* post = page->GetTimeline()[j];
+
+            if(post->GetSharedBy() == page && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear)
+            {
+                cout << "\n--- " << page->GetTitle();
+
+                for (int j = 0; j < post->GetActivityCount(); j++)
+                {
+                    Activity* activity = post->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+            post->DisplayDate();
+            cout << "\t\"" << post->GetContent() << "\"" << endl;
+
+                int commentCount = post->GetCommentCount();
+
+                if(commentCount > 0)
+                {
+                    for (int k = 0; k < commentCount; k++)
+                    {
+                        Comment* comment = post->GetComment(k);
+
+                        if(comment->GetCommentBy()->GetTitle() != nullptr)
+                            cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                        else
+                            cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 const char* User::GetID()
 {
@@ -947,6 +1093,16 @@ const char* User::GetFirstName()
 const char* User::GetLastName()
 {
     return lName;
+}
+
+int User::GetIndex()
+{
+    return index;
+}
+
+Post** User::GetTimeline()
+{
+    return timeline;
 }
 
 
@@ -1288,6 +1444,8 @@ void Controller::Run()
     Page* page = allPages[currentPage];
 
     page->PrintTimeline(page);
+
+    user->ViewHomePage();
 }
 
 
