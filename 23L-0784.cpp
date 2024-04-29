@@ -83,6 +83,8 @@ class Post
         int GetCommentCount();
         Comment* GetComment(int);
         void DisplayDate();
+        void PostComment(Object*, const char*);
+        void ViewPost(Post*);
 };
 
 
@@ -225,6 +227,7 @@ class Helper
         static char* GetStringFromBuffer(char*);
         static void StringCopy(char*&, char*&);
         static void RemoveExtraSpaces(char*&);
+        static int CompareString(const char*, const char*);
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,6 +248,8 @@ class Comment
         ~Comment();
         const char* GetText();
         Object* GetCommentBy();
+        void SetText(const char*);
+        void SetCommentBy(Object*);
 };
 
 
@@ -275,6 +280,16 @@ const char* Comment::GetText()
 Object* Comment::GetCommentBy()
 {
     return commentBy;
+}
+
+void Comment::SetText(const char* newText)
+{
+    text = const_cast<char*>(newText);
+}
+
+void Comment::SetCommentBy(Object* obj)
+{
+    commentBy = obj;
 }
 
 
@@ -566,7 +581,28 @@ void Helper::RemoveExtraSpaces(char*& str)
     str[end - start + 1] = '\0';
 }
 
+int Helper::CompareString(const char* str1, const char* str2)
+{
+    while(*str1 != '\0' && *str2 != '\0') 
+    {
+        if(*str1 > *str2) 
+            return 1; 
+        else if(*str1 < *str2)
+            return -1;
 
+        str1++;
+        str2++;
+    }
+    
+    if(*str1 == '\0' && *str2 == '\0') 
+        return 0;
+
+    else if(*str1 == '\0')
+        return -1;
+
+    else
+        return 1;
+}
 
 
 
@@ -842,6 +878,55 @@ void Post::DisplayDate()
         cout << " (3d)\n";
     else
         cout << " (" << day << "/" << month << "/" << year << ")\n";
+}
+
+void Post::PostComment(Object* obj, const char* content)
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tPostComment(" << id << ", " << content << ")\n";
+
+    for(int i = 0; i < commentCount; i++)
+        if(comment[i] != nullptr && Helper::CompareString(comment[i]->GetText(), content) == 0 && comment[i]->GetCommentBy() == obj)
+            return;
+            
+
+    for(int i = 0; i < maxSize; i++)
+    {
+        if(comment[i] == nullptr)
+        {
+            comment[i] = new Comment;
+            comment[i]->SetText(content);
+            comment[i]->SetCommentBy(obj);
+            commentCount++;
+            return;
+        }
+    }
+
+    cout << "\nComments List is full. Cannot add more comments.\n";
+}
+
+void Post::ViewPost(Post* post)
+{
+    cout << "Command:\tView Post" << "(" << post->GetID() << ")\n\n";
+    cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
+
+    for (int j = 0; j < post->GetActivityCount(); j++)
+    {
+        Activity* activity = post->GetActivity(j);
+        int type = activity->GetType();
+        
+        activity->DisplayActivity(type);
+    }
+    
+    post->DisplayDate();
+
+    cout << "\t\"" << post->GetContent() << "\"\n"; 
+
+    for(int k = 0; k < post->GetCommentCount(); k++) 
+    {
+        Comment* cmnt = post->GetComment(k);
+        cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1446,6 +1531,18 @@ void Controller::Run()
     page->PrintTimeline(page);
 
     user->ViewHomePage();
+
+    int viewPost1 = 3;
+    Post* post2 = allPosts[viewPost1];
+
+    post2->PostComment(user, "Good Luck for your Result");
+    post2->ViewPost(post2);
+
+    int viewPost2 = 7;
+    Post* post3 = allPosts[viewPost2];
+
+    post3->PostComment(user, "Thanks for the wishes");
+    post3->ViewPost(post3);
 }
 
 
