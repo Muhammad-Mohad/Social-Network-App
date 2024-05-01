@@ -11,6 +11,7 @@ class Date;
 class PostContent;
 class Activity;
 class Comment;
+class Memory;
 class Helper;
 
 
@@ -50,22 +51,26 @@ class Post
 {
     private:
         char* id;
-        char* content;
         int day;
         int month;
         int year;
         int likeCount;
         int activityCount;
         int commentCount;
-        const int maxSize = 10;
-        Object* sharedBy;
+        int memoryCount;
         Object** likedBy;
         Activity** activity;
         Comment** comment;
+        Memory** memory;
+
+    protected:
+        char* content;
+        const int maxSize = 10;
+        Object* sharedBy;
 
     public:
         Post();
-        ~Post();
+        virtual ~Post();
         void ReadDataFromFile(ifstream&);
         void SetSharedBy(Object*);
         void SetLikedBy(Object*);
@@ -83,13 +88,29 @@ class Post
         int GetCommentCount();
         Comment* GetComment(int);
         void DisplayDate();
+        void DisplayYear();
         void PostComment(Object*, const char*);
         void ViewPost(Post*);
+        void AddToTimeline(Memory*);
+        int GetMemoryCount();
+        Memory* GetMemory(int);
 };
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class Memory : public Post
+{
+    private:
+        Object* memoryBy;
+    public: 
+        Memory(const char*, Post*, Object*);
+        Object* GetMemoryBy();
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 class Controller
@@ -148,6 +169,7 @@ class User : public Object
         void ViewLikedPages();
         void ViewFriendsList();
         void ViewHomePage();
+        void SeeYourMemories();
         const char* GetID();
         const char* GetFirstName();
         const char* GetLastName();
@@ -226,6 +248,7 @@ class Helper
         static int StringLength(char*);
         static char* GetStringFromBuffer(char*);
         static void StringCopy(char*&, char*&);
+        static void StringCopy(char*&, const char*&);
         static void RemoveExtraSpaces(char*&);
         static int CompareString(const char*, const char*);
 };
@@ -254,6 +277,24 @@ class Comment
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Memory::Memory(const char* text, Post* post, Object* obj)
+{
+    content = new char[Helper::StringLength(const_cast<char*>(text)) + 1];
+    Helper::StringCopy(content, text);  
+    SetSharedBy(obj);
+
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tShareMemory(" << post->GetID() << ", \"" << text << "\")" << "\n";   
+}
+
+Object* Memory::GetMemoryBy()
+{
+    return memoryBy;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 Comment::Comment()
 {
@@ -418,7 +459,6 @@ const char* Object::GetTitle()
     return nullptr;
 }
 
-
 void Object::PrintTimeline(User* user)
 {
     cout << "\n--------------------------------------------------------------------------\n\n";
@@ -430,26 +470,37 @@ void Object::PrintTimeline(User* user)
     {
         if(timeline[i]->GetSharedBy() == user)
         {
-            cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
-
-            for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+            if(typeid(*timeline[i]) == typeid(Memory))
             {
-                Activity* activity = timeline[i]->GetActivity(j);
-                int type = activity->GetType();
-                
-                activity->DisplayActivity(type);
+                cout << "~~~ " << user->GetFirstName() << " " << user->GetLastName() << " shared a memory ~~~";
+                timeline[i]->DisplayDate();
+                cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
             }
 
-            timeline[i]->DisplayDate();
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
-
-            for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
+            else
             {
-                Comment* cmnt = timeline[i]->GetComment(k);
-                cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
-            }
+                cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
 
-            cout << endl;
+                for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+                {
+                    Activity* activity = timeline[i]->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+                timeline[i]->DisplayDate();
+
+                cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+
+                for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
+                {
+                    Comment* cmnt = timeline[i]->GetComment(k);
+                    cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
+                }
+
+                cout << endl;
+            }
         }
     }
 }
@@ -548,6 +599,16 @@ void Helper::StringCopy(char*& dest, char*& src)
     char* tempDest = dest;
 
     for (char* tempSrc = src; *tempSrc != '\0'; tempSrc++, tempDest++)
+        *tempDest = *tempSrc;
+
+    *tempDest = '\0';
+}
+
+void Helper::StringCopy(char*& dest, const char*& src)
+{
+    char* tempDest = dest;
+
+    for (const char* tempSrc = src; *tempSrc != '\0'; tempSrc++, tempDest++)
         *tempDest = *tempSrc;
 
     *tempDest = '\0';
@@ -687,12 +748,18 @@ Post::Post()
     for(int i = 0; i < maxSize; i++)
         comment[i] = nullptr;
 
-    day = 0;
-    month = 0;
-    year = 0;
+    memory = new Memory*[maxSize];
+
+    for(int i = 0; i < maxSize; i++)
+        memory[i] = nullptr;
+
+    day = 17;
+    month = 4;
+    year = 2024;
     likeCount = 0;
     activityCount = 0;
     commentCount = 0;
+    memoryCount = 0;
 }
 
 Post::~Post()
@@ -702,6 +769,7 @@ Post::~Post()
     delete[] likedBy;
     delete[] activity;
     delete[] comment;
+    delete[] memory;
 }
 
 void Post::ReadDataFromFile(ifstream& inputFile)
@@ -827,6 +895,25 @@ void Post::AddToTimeline(Activity* act)
     cout << "\nTimeline is full. Cannot add more activities.\n";
 }
 
+void Post::AddToTimeline(Memory* mem)
+{
+    for(int i = 0; i < memoryCount; i++)
+        if(memory[i] == mem)
+            return;
+
+    for(int i = 0; i < maxSize; i++)
+    {
+        if(memory[i] == nullptr)
+        {
+            memory[i] = mem;
+            memoryCount++;
+            return;
+        }
+    }
+
+    cout << "\nTimeline is full. Cannot add more memories.\n";
+}
+
 void Post::AddComment(Comment* cmnt)
 {
     for(int i = 0; i < commentCount; i++)
@@ -880,6 +967,19 @@ void Post::DisplayDate()
         cout << " (" << day << "/" << month << "/" << year << ")\n";
 }
 
+void Post::DisplayYear()
+{
+
+    if(day == Date::day && month == Date::month && year == Date::year - 1)
+        cout << "1 Year Ago\n";
+    else if(day == Date::day && month == Date::month && year == Date::year - 2)
+        cout << "2 Years Ago\n";
+    else if(day == Date::day && month == Date::month && year == Date::year - 3)
+        cout << "3 Years Ago\n";
+    else if(day == Date::day && month == Date::month && year == Date::year - 4)
+        cout << "4 Years Ago\n";
+}
+
 void Post::PostComment(Object* obj, const char* content)
 {
     cout << "\n--------------------------------------------------------------------------\n\n";
@@ -927,6 +1027,16 @@ void Post::ViewPost(Post* post)
         Comment* cmnt = post->GetComment(k);
         cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
     }
+}
+
+int Post::GetMemoryCount()
+{
+    return memoryCount;
+}
+
+Memory* Post::GetMemory(int index)
+{
+    return memory[index];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1158,6 +1268,55 @@ void User::ViewHomePage()
                         else
                             cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
                     }
+                }
+            }
+        }
+    }
+}
+
+void User::SeeYourMemories()
+{
+    int RequiredDay = 17;
+    int requiredMonth = 4;
+
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tSeeYourMemories()\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << "We hope you enjoy looking back and sharing your memories on Facebook, from the most recent to those long ago.\n\n";
+
+    for(int i = 0; i < index; i++) 
+    {
+        Post* post = timeline[i];
+
+        if(post->GetSharedBy() == this && post->GetDay() <= RequiredDay && post->GetMonth() == requiredMonth) 
+        {
+            cout << "On this Day\n";
+            post->DisplayYear();
+            cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
+
+            for (int j = 0; j < post->GetActivityCount(); j++)
+            {
+                Activity* activity = post->GetActivity(j);
+                int type = activity->GetType();
+                
+                activity->DisplayActivity(type);
+            }
+
+            post->DisplayDate();
+            cout << "\t\"" << post->GetContent() << "\"" << endl;
+
+            int commentCount = post->GetCommentCount();
+
+            if(commentCount > 0) 
+            {
+                for(int k = 0; k < commentCount; k++) 
+                {
+                    Comment* comment = post->GetComment(k);
+
+                    if(comment->GetCommentBy()->GetTitle() != nullptr)
+                        cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                    else
+                        cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
                 }
             }
         }
@@ -1543,6 +1702,19 @@ void Controller::Run()
 
     post3->PostComment(user, "Thanks for the wishes");
     post3->ViewPost(post3);
+
+    user->SeeYourMemories();
+
+    int viewPost3 = 9;
+    Post* post4 = allPosts[viewPost3];
+
+    Memory* memoryPtr = new Memory("Never thought I will be specialist in this field" , post4, user);
+
+    user->AddToTimeline(memoryPtr);
+
+    user->PrintTimeline(user);
+
+    delete memoryPtr;
 }
 
 
