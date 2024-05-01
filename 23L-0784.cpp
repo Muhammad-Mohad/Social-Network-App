@@ -37,8 +37,6 @@ class Object
         virtual const char* GetFirstName();
         virtual const char* GetLastName();
         void AddToTimeline(Post*);
-        void PrintTimeline(User*);
-        void PrintTimeline(Page*);
 };
 
 
@@ -88,7 +86,7 @@ class Post
         void DisplayDate();
         void DisplayYear();
         void PostComment(Object*, const char*);
-        void ViewPost(Post*);
+        void ViewPost();
         virtual Post* GetPostPtr();
 };
 
@@ -165,6 +163,7 @@ class User : public Object
         void LikePage(Page*&);
         void ViewLikedPages();
         void ViewFriendsList();
+        void PrintTimeline();
         void ViewHomePage();
         void SeeYourMemories();
         const char* GetID();
@@ -190,6 +189,7 @@ class Page : public Object
         const char* GetTitle();
         int GetIndex();
         Post** GetTimeline();
+        void PrintTimeline();
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -457,121 +457,6 @@ const char* Object::GetTitle()
     return nullptr;
 }
 
-void Object::PrintTimeline(User* user)
-{
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tView Timeline\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << user->GetFirstName() << " " << user->GetLastName() << " - Timeline\n\n";
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == user)
-        {
-            if(typeid(*timeline[i]) == typeid(Memory))
-            {
-                cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
-
-                cout << "~~~ " << user->GetFirstName() << " " << user->GetLastName() << " shared a memory ~~~";
-                timeline[i]->DisplayDate();
-                cout << "\t\"" << timeline[i]->GetContent() << "\"\n\t~~~ ";
-                timeline[i]->GetPostPtr()->DisplayYear();
-                cout << " ~~~";
-                cout << "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
-
-                cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
-
-                Post* ptr = timeline[i]->GetPostPtr();
-                
-                for (int j = 0; j < ptr->GetActivityCount(); j++)
-                {
-                    Activity* activity = ptr->GetActivity(j);
-                    int type = activity->GetType();
-                    
-                    activity->DisplayActivity(type);
-                }
-
-                ptr->DisplayDate();
-
-                cout << "\t\"" << ptr->GetContent() << "\"\n";
-
-                cout << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
-            }
-
-            else
-            {
-                cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
-
-                for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
-                {
-                    Activity* activity = timeline[i]->GetActivity(j);
-                    int type = activity->GetType();
-                    
-                    activity->DisplayActivity(type);
-                }
-
-                timeline[i]->DisplayDate();
-
-                cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
-
-                for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
-                {
-                    Comment* cmnt = timeline[i]->GetComment(k);
-                    cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
-                }
-
-                cout << endl;
-            }
-        }
-    }
-}
-
-void Object::PrintTimeline(Page* page)
-{
-    cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tViewing Page \"" << page->GetID() << "\"\n\n";
-    cout << "--------------------------------------------------------------------------\n\n";
-    cout << page->GetTitle() << endl;
-
-    for(int i = 0; i < index; i++)
-    {
-        if(timeline[i]->GetSharedBy() == page)
-        {
-            cout << "--- " << page->GetTitle();
-
-            for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
-            {
-                Activity* activity = timeline[i]->GetActivity(j);
-                int type = activity->GetType();
-                
-                activity->DisplayActivity(type);
-            }
-
-            timeline[i]->DisplayDate();
-            cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
-
-            int commentCount = timeline[i]->GetCommentCount();
-            if(commentCount > 0) 
-            {
-                for (int k = 0; k < commentCount; k++) 
-                {
-                    Comment* comment = timeline[i]->GetComment(k);
-
-                    if(comment->GetCommentBy()->GetTitle() != nullptr)
-                        cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
-
-                    else
-                        cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
-                }
-                cout << endl;
-            }
-        }
-    }
-}
-
-
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -744,6 +629,49 @@ int Page::GetIndex()
 Post** Page::GetTimeline()
 {
     return timeline;
+}
+
+void Page::PrintTimeline()
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tViewing Page \"" << id << "\"\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << title << endl;
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == this)
+        {
+            cout << "--- " << title;
+
+            for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+            {
+                Activity* activity = timeline[i]->GetActivity(j);
+                int type = activity->GetType();
+                
+                activity->DisplayActivity(type);
+            }
+
+            timeline[i]->DisplayDate();
+            cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+
+            int commentCount = timeline[i]->GetCommentCount();
+            if(commentCount > 0) 
+            {
+                for (int k = 0; k < commentCount; k++) 
+                {
+                    Comment* comment = timeline[i]->GetComment(k);
+
+                    if(comment->GetCommentBy()->GetTitle() != nullptr)
+                        cout << "\t\t" << comment->GetCommentBy()->GetTitle() << ": " << "\"" << comment->GetText() << "\"" << endl;
+
+                    else
+                        cout << "\t\t" << comment->GetCommentBy()->GetFirstName() << " " << comment->GetCommentBy()->GetLastName() << ": " << "\"" << comment->GetText() << "\"" << endl;
+                }
+                cout << endl;
+            }
+        }
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1000,26 +928,26 @@ void Post::PostComment(Object* obj, const char* content)
     cout << "\nComments List is full. Cannot add more comments.\n";
 }
 
-void Post::ViewPost(Post* post)
+void Post::ViewPost()
 {
-    cout << "Command:\tView Post" << "(" << post->GetID() << ")\n\n";
-    cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
+    cout << "Command:\tView Post" << "(" << id << ")\n\n";
+    cout << "--- " << sharedBy->GetFirstName() << " " << sharedBy->GetLastName();
 
-    for (int j = 0; j < post->GetActivityCount(); j++)
+    for (int j = 0; j < activityCount; j++)
     {
-        Activity* activity = post->GetActivity(j);
+        Activity* activity = GetActivity(j);
         int type = activity->GetType();
         
         activity->DisplayActivity(type);
     }
     
-    post->DisplayDate();
+    DisplayDate();
 
-    cout << "\t\"" << post->GetContent() << "\"\n"; 
+    cout << "\t\"" << content << "\"\n"; 
 
-    for(int k = 0; k < post->GetCommentCount(); k++) 
+    for(int k = 0; k < commentCount; k++) 
     {
-        Comment* cmnt = post->GetComment(k);
+        Comment* cmnt = GetComment(k);
         cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
     }
 }
@@ -1121,6 +1049,76 @@ void User::ViewFriendsList()
     for(int i = 0; i < friendsCount; i++)
         cout << friendsList[i]->GetID() << " - " << friendsList[i]->GetFirstName() << " " << friendsList[i]->GetLastName() << endl;
 }
+
+void User::PrintTimeline()
+{
+    cout << "\n--------------------------------------------------------------------------\n\n";
+    cout << "Command:\tView Timeline\n\n";
+    cout << "--------------------------------------------------------------------------\n\n";
+    cout << fName << " " << lName << " - Timeline\n\n";
+
+    for(int i = 0; i < index; i++)
+    {
+        if(timeline[i]->GetSharedBy() == this)
+        {
+            if(typeid(*timeline[i]) == typeid(Memory))
+            {
+                cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+
+                cout << "~~~ " << fName << " " << lName << " shared a memory ~~~";
+                timeline[i]->DisplayDate();
+                cout << "\t\"" << timeline[i]->GetContent() << "\"\n\t~~~ ";
+                timeline[i]->GetPostPtr()->DisplayYear();
+                cout << " ~~~";
+                cout << "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+
+                cout << "--- " << fName << " " << lName;
+
+                Post* ptr = timeline[i]->GetPostPtr();
+                
+                for (int j = 0; j < ptr->GetActivityCount(); j++)
+                {
+                    Activity* activity = ptr->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+                ptr->DisplayDate();
+
+                cout << "\t\"" << ptr->GetContent() << "\"\n";
+
+                cout << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+            }
+
+            else
+            {
+                cout << "--- " << fName << " " << lName;
+
+                for (int j = 0; j < timeline[i]->GetActivityCount(); j++)
+                {
+                    Activity* activity = timeline[i]->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+                timeline[i]->DisplayDate();
+
+                cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+
+                for(int k = 0; k < timeline[i]->GetCommentCount(); k++) 
+                {
+                    Comment* cmnt = timeline[i]->GetComment(k);
+                    cout << "\t\t" << cmnt->GetCommentBy()->GetFirstName() << " " << cmnt->GetCommentBy()->GetLastName() << ": " << "\"" << cmnt->GetText() << "\"\n";
+                }
+
+                cout << endl;
+            }
+        }
+    }
+}
+
 
 void User::ViewLikedPages()
 {
@@ -1663,7 +1661,7 @@ void Controller::Run()
 
     user->ViewLikedPages();
     
-    user->PrintTimeline(user);
+    user->PrintTimeline();
 
     int currentPost = 4;
     Post* post = allPosts[currentPost];
@@ -1677,7 +1675,7 @@ void Controller::Run()
     int currentPage = 0;
     Page* page = allPages[currentPage];
 
-    page->PrintTimeline(page);
+    page->PrintTimeline();
 
     user->ViewHomePage();
 
@@ -1685,13 +1683,15 @@ void Controller::Run()
     Post* post2 = allPosts[viewPost1];
 
     post2->PostComment(user, "Good Luck for your Result");
-    post2->ViewPost(post2);
+
+    post2->ViewPost();
 
     int viewPost2 = 7;
     Post* post3 = allPosts[viewPost2];
 
     post3->PostComment(user, "Thanks for the wishes");
-    post3->ViewPost(post3);
+    
+    post3->ViewPost();
 
     user->SeeYourMemories();
 
@@ -1702,7 +1702,7 @@ void Controller::Run()
 
     user->AddToTimeline(memoryPtr);
 
-    user->PrintTimeline(user);
+    user->PrintTimeline();
 
     delete memoryPtr;
 }
