@@ -57,11 +57,9 @@ class Post
         int likeCount;
         int activityCount;
         int commentCount;
-        int memoryCount;
         Object** likedBy;
         Activity** activity;
         Comment** comment;
-        Memory** memory;
 
     protected:
         char* content;
@@ -91,9 +89,7 @@ class Post
         void DisplayYear();
         void PostComment(Object*, const char*);
         void ViewPost(Post*);
-        void AddToTimeline(Memory*);
-        int GetMemoryCount();
-        Memory* GetMemory(int);
+        virtual Post* GetPostPtr();
 };
 
 
@@ -103,10 +99,11 @@ class Post
 class Memory : public Post
 {
     private:
-        Object* memoryBy;
+        Post* postPtr;
+
     public: 
         Memory(const char*, Post*, Object*);
-        Object* GetMemoryBy();
+        Post* GetPostPtr();
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -282,15 +279,16 @@ Memory::Memory(const char* text, Post* post, Object* obj)
 {
     content = new char[Helper::StringLength(const_cast<char*>(text)) + 1];
     Helper::StringCopy(content, text);  
-    SetSharedBy(obj);
+    SetSharedBy(obj);  
+    postPtr = post;
 
     cout << "\n--------------------------------------------------------------------------\n\n";
-    cout << "Command:\tShareMemory(" << post->GetID() << ", \"" << text << "\")" << "\n";   
+    cout << "Command:\tShareMemory(" << post->GetID() << ", \"" << text << "\")" << "\n";
 }
 
-Object* Memory::GetMemoryBy()
+Post* Memory::GetPostPtr()
 {
-    return memoryBy;
+    return postPtr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -472,9 +470,32 @@ void Object::PrintTimeline(User* user)
         {
             if(typeid(*timeline[i]) == typeid(Memory))
             {
+                cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+
                 cout << "~~~ " << user->GetFirstName() << " " << user->GetLastName() << " shared a memory ~~~";
                 timeline[i]->DisplayDate();
-                cout << "\t\"" << timeline[i]->GetContent() << "\"\n";
+                cout << "\t\"" << timeline[i]->GetContent() << "\"\n\t~~~ ";
+                timeline[i]->GetPostPtr()->DisplayYear();
+                cout << " ~~~";
+                cout << "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
+
+                cout << "--- " << user->GetFirstName() << " " << user->GetLastName();
+
+                Post* ptr = timeline[i]->GetPostPtr();
+                
+                for (int j = 0; j < ptr->GetActivityCount(); j++)
+                {
+                    Activity* activity = ptr->GetActivity(j);
+                    int type = activity->GetType();
+                    
+                    activity->DisplayActivity(type);
+                }
+
+                ptr->DisplayDate();
+
+                cout << "\t\"" << ptr->GetContent() << "\"\n";
+
+                cout << "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n";
             }
 
             else
@@ -748,18 +769,12 @@ Post::Post()
     for(int i = 0; i < maxSize; i++)
         comment[i] = nullptr;
 
-    memory = new Memory*[maxSize];
-
-    for(int i = 0; i < maxSize; i++)
-        memory[i] = nullptr;
-
     day = 17;
     month = 4;
     year = 2024;
     likeCount = 0;
     activityCount = 0;
     commentCount = 0;
-    memoryCount = 0;
 }
 
 Post::~Post()
@@ -769,7 +784,6 @@ Post::~Post()
     delete[] likedBy;
     delete[] activity;
     delete[] comment;
-    delete[] memory;
 }
 
 void Post::ReadDataFromFile(ifstream& inputFile)
@@ -895,25 +909,6 @@ void Post::AddToTimeline(Activity* act)
     cout << "\nTimeline is full. Cannot add more activities.\n";
 }
 
-void Post::AddToTimeline(Memory* mem)
-{
-    for(int i = 0; i < memoryCount; i++)
-        if(memory[i] == mem)
-            return;
-
-    for(int i = 0; i < maxSize; i++)
-    {
-        if(memory[i] == nullptr)
-        {
-            memory[i] = mem;
-            memoryCount++;
-            return;
-        }
-    }
-
-    cout << "\nTimeline is full. Cannot add more memories.\n";
-}
-
 void Post::AddComment(Comment* cmnt)
 {
     for(int i = 0; i < commentCount; i++)
@@ -971,13 +966,13 @@ void Post::DisplayYear()
 {
 
     if(day == Date::day && month == Date::month && year == Date::year - 1)
-        cout << "1 Year Ago\n";
+        cout << "1 Year Ago";
     else if(day == Date::day && month == Date::month && year == Date::year - 2)
-        cout << "2 Years Ago\n";
+        cout << "2 Years Ago";
     else if(day == Date::day && month == Date::month && year == Date::year - 3)
-        cout << "3 Years Ago\n";
+        cout << "3 Years Ago";
     else if(day == Date::day && month == Date::month && year == Date::year - 4)
-        cout << "4 Years Ago\n";
+        cout << "4 Years Ago";
 }
 
 void Post::PostComment(Object* obj, const char* content)
@@ -1029,14 +1024,9 @@ void Post::ViewPost(Post* post)
     }
 }
 
-int Post::GetMemoryCount()
+Post* Post::GetPostPtr()
 {
-    return memoryCount;
-}
-
-Memory* Post::GetMemory(int index)
-{
-    return memory[index];
+    return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1292,7 +1282,7 @@ void User::SeeYourMemories()
         {
             cout << "On this Day\n";
             post->DisplayYear();
-            cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
+            cout << "\n--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
 
             for (int j = 0; j < post->GetActivityCount(); j++)
             {
@@ -1749,6 +1739,7 @@ void Controller::LoadData()
 int main()
 {
     Controller mainApp;
+
     mainApp.LoadData();
     mainApp.Run();
 
