@@ -280,7 +280,7 @@ void Object::AddToTimeline(Post* post)
         }
     }    
     
-    cout << "\nTimeline is full. Cannot add more posts.\n";
+    cout << "\n\nTimeline is full. Cannot add more posts.\n\n";
 }
 
 
@@ -445,7 +445,6 @@ void Post::PrintLikedBy(Object* obj)
                 cout << likedBy[i]->GetID() << " - " << likedBy[i]->GetFirstName() << " " << likedBy[i]->GetLastName() << endl;
         }
     }
-    
 }
 
 void Post::AddToTimeline(Activity* act)
@@ -464,7 +463,7 @@ void Post::AddToTimeline(Activity* act)
         }
     }
 
-    cout << "\nTimeline is full. Cannot add more activities.\n";
+    cout << "\n\nTimeline is full. Cannot add more activities.\n\n";
 }
 
 void Post::AddComment(Comment* cmnt)
@@ -483,7 +482,7 @@ void Post::AddComment(Comment* cmnt)
         }
     }
 
-    cout << "\nComments List is full. Cannot add more comments.\n";
+    cout << "\n\nComments List is full. Cannot add more comments.\n\n";
 }
 
 int Post::GetActivityCount()
@@ -508,29 +507,22 @@ Comment* Post::GetComment(int index)
 
 void Post::DisplayDate()
 {
+    int diff = Date::day - day;
+
     if(day == Date::day && month == Date::month && year == Date::year)
         cout << " (1h)\n";
-    else if(day == Date::day - 1 && month == Date::month && year == Date::year)
-        cout << " (1d)\n";
-    else if(day == Date::day - 2 && month == Date::month && year == Date::year)
-        cout << " (2d)\n";
-    else if(day == Date::day - 3 && month == Date::month && year == Date::year)
-        cout << " (3d)\n";
+    else if(diff >= 1 && diff <= 10 && month == Date::month && year == Date::year)
+        cout << " (" << diff << "d)\n";
     else
         cout << " (" << day << "/" << month << "/" << year << ")\n";
 }
 
 void Post::DisplayYear()
 {
+    int diff = Date::year - year;
 
-    if(day == Date::day && month == Date::month && year == Date::year - 1)
-        cout << "1 Year Ago";
-    else if(day == Date::day && month == Date::month && year == Date::year - 2)
-        cout << "2 Years Ago";
-    else if(day == Date::day && month == Date::month && year == Date::year - 3)
-        cout << "3 Years Ago";
-    else if(day == Date::day && month == Date::month && year == Date::year - 4)
-        cout << "4 Years Ago";
+    if(day == Date::day && month == Date::month && diff >= 1 && diff <= 10)
+        cout << diff << " Year Ago";
 }
 
 void Post::PostComment(Object* obj, const char* content)
@@ -555,7 +547,7 @@ void Post::PostComment(Object* obj, const char* content)
         }
     }
 
-    cout << "\nComments List is full. Cannot add more comments.\n";
+    cout << "\n\nComments List is full. Cannot add more comments.\n\n";
 }
 
 void Post::ViewPost()
@@ -606,42 +598,32 @@ Controller::Controller()
 Controller::~Controller()
 {
     if(allUsers != nullptr)
-    {
         for(int i = 0; i < totalUsers; i++)
             delete allUsers[i];
-    }
 
     delete[] allUsers;
 
     if(allPages != nullptr)
-    {
         for(int i = 0; i < totalPages; i++)
             delete allPages[i];
-    }
 
     delete[] allPages;
 
     if(allPosts != nullptr)
-    {
         for(int i = 0; i < totalPosts; i++)
             delete allPosts[i];
-    }
 
     delete[] allPosts;
 
     if(allActivities != nullptr)
-    {
         for(int i = 0; i < totalActivities; i++)
             delete allActivities[i];
-    }
-
+    
     delete[] allActivities;
 
     if(allComments != nullptr)
-    {
         for(int i = 0; i < totalComments; i++)
             delete allComments[i];
-    }
 
     delete[] allComments;
 }
@@ -926,7 +908,6 @@ void Controller::Run()
     Post* post3 = allPosts[viewPost2];
 
     post3->PostComment(user, "Thanks for the wishes");
-
     post3->ViewPost();
 
     user->SeeYourMemories();
@@ -1138,9 +1119,6 @@ void User::ViewLikedPages()
 void User::ViewHomePage() 
 {
     int minRequiredDay = 14;
-    int maxRequiredDay = 17;
-    int requiredMonth = 4;
-    int requiredYear = 2024;
 
     cout << "\n--------------------------------------------------------------------------\n\n";
     cout << "Command:\tView Home Page\n\n";
@@ -1151,7 +1129,7 @@ void User::ViewHomePage()
     {
         Post* post = timeline[i];
 
-        if(post->GetSharedBy() == this && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear) 
+        if(post->GetSharedBy() == this && post->GetDay() <= Date::day && post->GetDay() >= minRequiredDay && post->GetMonth() == Date::month && post->GetYear() == Date::year) 
         {
             cout << "--- " << post->GetSharedBy()->GetFirstName() << " " << post->GetSharedBy()->GetLastName();
 
@@ -1191,7 +1169,7 @@ void User::ViewHomePage()
         {
             Post* post = user->GetTimeline()[j];
 
-            if(post->GetSharedBy() == user && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear)
+            if(post->GetSharedBy() == user && post->GetDay() <= Date::day && post->GetDay() >= minRequiredDay && post->GetMonth() == Date::month && post->GetYear() == Date::year)
             {
                 cout << "\n--- " << user->GetFirstName() << " " << user->GetLastName();
 
@@ -1232,7 +1210,7 @@ void User::ViewHomePage()
         {
             Post* post = page->GetTimeline()[j];
 
-            if(post->GetSharedBy() == page && post->GetDay() <= maxRequiredDay && post->GetDay() >= minRequiredDay && post->GetMonth() == requiredMonth && post->GetYear() == requiredYear)
+            if(post->GetSharedBy() == page && post->GetDay() <= Date::day && post->GetDay() >= minRequiredDay && post->GetMonth() == Date::month && post->GetYear() == Date::year)
             {
                 cout << "\n--- " << page->GetTitle();
 
@@ -1268,9 +1246,6 @@ void User::ViewHomePage()
 
 void User::SeeYourMemories()
 {
-    int RequiredDay = 17;
-    int requiredMonth = 4;
-
     cout << "\n--------------------------------------------------------------------------\n\n";
     cout << "Command:\tSeeYourMemories()\n\n";
     cout << "--------------------------------------------------------------------------\n\n";
@@ -1280,7 +1255,7 @@ void User::SeeYourMemories()
     {
         Post* post = timeline[i];
 
-        if(post->GetSharedBy() == this && post->GetDay() <= RequiredDay && post->GetMonth() == requiredMonth) 
+        if(post->GetSharedBy() == this && post->GetDay() <= Date::day && post->GetMonth() == Date::month) 
         {
             cout << "On this Day\n";
             post->DisplayYear();
