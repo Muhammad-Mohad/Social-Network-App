@@ -522,7 +522,7 @@ void Post::DisplayYear()
     int diff = Date::year - year;
 
     if(day == Date::day && month == Date::month && diff >= 1 && diff <= 10)
-        cout << diff << " Year Ago";
+        cout << diff << " Years Ago";
 }
 
 void Post::PostComment(Object* obj, const char* content)
