@@ -234,7 +234,6 @@ class Memory : public Post
 class Helper
 {
     public:
-        static bool SubStringExists(const char*, const char*);
         static int StringLength(char*);
         static char* GetStringFromBuffer(char*);
         static void StringCopy(char*&, char*&);
@@ -840,7 +839,7 @@ User* Controller::SearchUserByID(const char* id)
 {
     for(int i = 0; i < totalUsers; i++)
     {
-        if(Helper::SubStringExists(allUsers[i]->GetID(), id))
+        if(Helper::CompareString(allUsers[i]->GetID(), id) == 0)
             return allUsers[i];
     }
     return nullptr;
@@ -850,7 +849,7 @@ Page* Controller::SearchPageByID(const char* id)
 {
     for(int i = 0; i < totalPages; i++)
     {
-        if(Helper::SubStringExists(allPages[i]->GetID(), id))
+        if(Helper::CompareString(allPages[i]->GetID(), id) == 0)
             return allPages[i];
     }
 
@@ -861,7 +860,7 @@ Post* Controller::SearchPostByID(const char* id)
 {
     for(int i = 0; i < totalPosts; i++)
     {
-        if(Helper::SubStringExists(allPosts[i]->GetID(), id))
+        if(Helper::CompareString(allPosts[i]->GetID(), id) == 0)
             return allPosts[i];
     }
 
@@ -1544,22 +1543,6 @@ Post* Memory::GetPostPtr()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool Helper::SubStringExists(const char* str, const char* subStr)
-{
-    for (int i = 0; str[i] != '\0'; i++)
-    {
-        int j = 0;
-
-        while (subStr[j] != '\0' && str[i + j] != '\0' && str[i + j] == subStr[j])
-            j++;
-
-        if (subStr[j] == '\0')
-            return true;
-    }
-
-    return false;
-}
 
 int Helper::StringLength(char* str)
 {
