@@ -49,10 +49,12 @@ class Post
         Object** likedBy;
         Activity** activity;
         Comment** comment;
+
     protected:
         char* content;
         const int maxSize = 10;
         Object* sharedBy;
+        
     public:
         Post();
         virtual ~Post();
